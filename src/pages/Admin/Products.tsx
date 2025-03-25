@@ -33,12 +33,16 @@ import {
   Settings, 
   LogOut 
 } from 'lucide-react';
+import { Dialog } from '@/components/ui/dialog';
+import { AddProductForm } from '@/components/admin/AddProductForm';
+import { Product } from '@/types/supabase';
 
 const AdminProducts = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [addProductOpen, setAddProductOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -93,14 +97,19 @@ const AdminProducts = () => {
     navigate('/');
   };
 
+  const handleAddProductSuccess = (newProduct: Product) => {
+    setProducts([newProduct, ...products]);
+    setAddProductOpen(false);
+    toast.success('Product added successfully');
+  };
+
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category_id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAddProduct = () => {
-    toast.info('Add product functionality will be implemented');
-    // Future: navigate('/admin/products/add');
+    setAddProductOpen(true);
   };
 
   const handleEditProduct = (id: string) => {
@@ -281,6 +290,10 @@ const AdminProducts = () => {
               )}
             </CardContent>
           </Card>
+
+          <Dialog open={addProductOpen} onOpenChange={setAddProductOpen}>
+            <AddProductForm onSuccess={handleAddProductSuccess} onCancel={() => setAddProductOpen(false)} />
+          </Dialog>
         </div>
       </div>
     </SidebarProvider>
