@@ -2,12 +2,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { categories } from '@/lib/data';
-import { ArrowRight, Game, Clapperboard, ClipboardList, BarChart } from 'lucide-react';
+import { ArrowRight, Gamepad2, Clapperboard, ClipboardList, BarChart } from 'lucide-react';
 
 const getIcon = (iconName: string) => {
   switch (iconName) {
     case 'Game':
-      return <Game className="w-10 h-10" />;
+    case 'Gamepad2':
+      return <Gamepad2 className="w-10 h-10" />;
     case 'Clapperboard':
       return <Clapperboard className="w-10 h-10" />;
     case 'ClipboardList':
@@ -15,7 +16,7 @@ const getIcon = (iconName: string) => {
     case 'BarChart':
       return <BarChart className="w-10 h-10" />;
     default:
-      return <Game className="w-10 h-10" />;
+      return <Gamepad2 className="w-10 h-10" />;
   }
 };
 
