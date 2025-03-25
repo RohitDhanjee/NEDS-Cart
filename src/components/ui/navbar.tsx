@@ -6,6 +6,7 @@ import {
   ChevronDown, 
   Menu, 
   X,
+  Shield,
 } from 'lucide-react';
 import { categories } from '@/lib/data';
 import { 
@@ -107,8 +108,19 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* Cart and Mobile Menu Button */}
+        {/* Cart, Admin, and Mobile Menu Button */}
         <div className="flex items-center space-x-4">
+          <Link 
+            to="/admin/login" 
+            className={cn(
+              'relative p-2 rounded-full transition-colors',
+              location.pathname.startsWith('/admin') ? 'bg-primary/10 text-primary' : 'hover:bg-secondary'
+            )}
+            title="Admin Panel"
+          >
+            <Shield size={20} />
+          </Link>
+
           <Link 
             to="/cart" 
             className={cn(
@@ -180,6 +192,16 @@ const Navbar = () => {
                 )}
               >
                 Contact
+              </Link>
+
+              <Link 
+                to="/admin/login" 
+                className={cn(
+                  'text-lg font-medium py-3 border-b border-gray-100',
+                  location.pathname.startsWith('/admin') ? 'text-primary' : 'text-foreground'
+                )}
+              >
+                Admin Panel
               </Link>
               
               <Button 
