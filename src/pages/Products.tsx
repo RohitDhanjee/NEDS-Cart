@@ -3,14 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Navbar from '@/components/ui/navbar';
 import Footer from '@/components/ui/footer';
-import { getProductsByCategory, categories, Category } from '@/lib/data';
+import { categories, Category } from '@/lib/data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types/supabase';
 
 const Products = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const [category, setCategory] = useState<Category | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Find the category by ID
   useEffect(() => {
@@ -22,8 +26,30 @@ const Products = () => {
     }
   }, [categoryId]);
   
-  // Get products for this category
-  const products = categoryId ? getProductsByCategory(categoryId as any) : [];
+  // Get products for this category from Supabase
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!categoryId) return;
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('category_id', categoryId)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setProducts(data || []);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProducts();
+  }, [categoryId]);
   
   if (!category) {
     return (
@@ -57,45 +83,51 @@ const Products = () => {
         
         {/* Products Grid */}
         <section className="container-tight pb-20">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {products.map((product, index) => (
-              <Card key={product.id} className="overflow-hidden group hover-scale bg-white animate-fade-in">
-                <div className="h-48 bg-secondary relative overflow-hidden">
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
-                  />
-                </div>
-                
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
-                    {product.name}
-                  </h3>
-                  <p className="text-muted-foreground line-clamp-3 mb-4">
-                    {product.shortDescription}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-lg">
-                      ${product.price.toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/mo</span>
-                    </span>
-                    <Button
-                      asChild
-                      size="sm"
-                      className="rounded-full"
-                    >
-                      <Link to={`/product/${product.id}`}>
-                        View Details
-                        <ArrowRight size={16} className="ml-2" />
-                      </Link>
-                    </Button>
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p>Loading products...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {products.map((product) => (
+                <Card key={product.id} className="overflow-hidden group hover-scale bg-white animate-fade-in">
+                  <div className="h-48 bg-secondary relative overflow-hidden">
+                    <img 
+                      src={product.image || '/placeholder.svg'} 
+                      alt={product.name} 
+                      className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                      {product.name}
+                    </h3>
+                    <p className="text-muted-foreground line-clamp-3 mb-4">
+                      {product.short_description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-lg">
+                        ${product.price.toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/mo</span>
+                      </span>
+                      <Button
+                        asChild
+                        size="sm"
+                        className="rounded-full"
+                      >
+                        <Link to={`/product/${product.id}`}>
+                          View Details
+                          <ArrowRight size={16} className="ml-2" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
           
-          {products.length === 0 && (
+          {!isLoading && products.length === 0 && (
             <div className="text-center py-12">
               <h3 className="text-xl font-bold mb-2">No products found</h3>
               <p className="text-muted-foreground mb-6">There are no products available in this category yet.</p>

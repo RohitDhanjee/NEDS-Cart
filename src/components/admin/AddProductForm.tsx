@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,16 +21,26 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { categories } from '@/lib/data';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
   short_description: z.string().optional(),
   category_id: z.string().min(1, 'Category is required'),
-  price: z.coerce.number().positive('Price must be positive'),
+  price: z.coerce.number()
+    .nonnegative('Price must be positive')
+    .max(9999.99, 'Price must be less than 10,000'), // Adding max value to prevent overflow
   image: z.string().optional(),
 });
 
@@ -75,9 +85,10 @@ export function AddProductForm({ onSuccess, onCancel }: AddProductFormProps) {
       if (error) throw error;
       
       onSuccess(newProduct as Product);
-    } catch (error) {
+      toast.success('Product added successfully');
+    } catch (error: any) {
       console.error('Error adding product:', error);
-      toast.error('Failed to add product');
+      toast.error(`Failed to add product: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -148,9 +159,23 @@ export function AddProductForm({ onSuccess, onCancel }: AddProductFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Product category" {...field} />
-                  </FormControl>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -168,6 +193,7 @@ export function AddProductForm({ onSuccess, onCancel }: AddProductFormProps) {
                       placeholder="0.00" 
                       step="0.01"
                       min="0"
+                      max="9999.99"
                       {...field}
                     />
                   </FormControl>
