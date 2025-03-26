@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -9,7 +10,7 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/ui/navbar';
 import Footer from '@/components/ui/footer';
-import { Feature } from '@/lib/data';
+import { Feature, ProductCategory } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
@@ -106,6 +107,10 @@ const Product = () => {
   
   const addToCart = () => {
     if (product) {
+      // Fix: Cast category_id to ProductCategory type using type assertion
+      // This assumes that category_id values match the expected ProductCategory values
+      const categoryAsProductCategory = product.category_id as ProductCategory;
+      
       const cartProductFormat = {
         id: product.id,
         name: product.name,
@@ -113,7 +118,7 @@ const Product = () => {
         shortDescription: product.short_description || '',
         price: product.price,
         image: product.image || '/placeholder.svg',
-        category: product.category_id,
+        category: categoryAsProductCategory,
         features: [],
       };
       
