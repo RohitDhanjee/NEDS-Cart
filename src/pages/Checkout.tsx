@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, 
@@ -19,17 +19,43 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-
-// Mock order summary data
-const mockOrderSummary = {
-  subtotal: 44.97,
-  total: 44.97
-};
+import { CartItem } from '@/pages/Cart'; // Import the CartItem type
 
 const Checkout = () => {
   const navigate = useNavigate();
   const [orderComplete, setOrderComplete] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('paypal');
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Calculate item total
+  const calculateItemTotal = (item: CartItem) => {
+    const featuresCost = item.selectedFeatures.reduce((sum, feature) => sum + feature.price, 0);
+    return (item.product.price + featuresCost) * item.quantity;
+  };
+  
+  // Calculate cart total
+  const calculateTotal = () => {
+    return cartItems.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+  };
+  
+  // Fetch cart items from localStorage
+  useEffect(() => {
+    const getCartItems = () => {
+      try {
+        const storedCart = localStorage.getItem('cart');
+        if (storedCart) {
+          setCartItems(JSON.parse(storedCart));
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    getCartItems();
+  }, []);
   
   // Simulate order completion
   const completeOrder = () => {
@@ -39,6 +65,8 @@ const Checkout = () => {
     // Simulate API call delay
     setTimeout(() => {
       setOrderComplete(true);
+      // Clear cart after successful order
+      localStorage.removeItem('cart');
       toast.success('Payment successful!');
     }, 2000);
   };
@@ -180,24 +208,41 @@ const Checkout = () => {
                   <div className="bg-white rounded-xl shadow-sm p-6 sticky top-32">
                     <h3 className="text-xl font-bold mb-6">Order Summary</h3>
                     
-                    <div className="space-y-4 mb-6">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span>${mockOrderSummary.subtotal.toFixed(2)}</span>
+                    {isLoading ? (
+                      <div className="text-center py-4">
+                        <p>Loading cart items...</p>
                       </div>
-                    </div>
+                    ) : cartItems.length > 0 ? (
+                      <div className="space-y-4 mb-6">
+                        {cartItems.map((item, index) => (
+                          <div key={index} className="flex justify-between text-sm">
+                            <span className="flex-grow">
+                              {item.product.name} {item.quantity > 1 && `(x${item.quantity})`}
+                            </span>
+                            <span className="font-medium ml-2">
+                              ${calculateItemTotal(item).toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 mb-6">
+                        <p>Your cart is empty</p>
+                      </div>
+                    )}
                     
                     <Separator className="my-4" />
                     
                     <div className="flex justify-between font-bold text-lg mb-6">
                       <span>Total</span>
-                      <span>${mockOrderSummary.total.toFixed(2)}/month</span>
+                      <span>${cartItems.length > 0 ? calculateTotal().toFixed(2) : "0.00"}/month</span>
                     </div>
                     
                     <Button 
                       className="w-full py-6 font-medium rounded-xl" 
                       size="lg"
                       onClick={completeOrder}
+                      disabled={cartItems.length === 0}
                     >
                       Complete Order
                     </Button>
@@ -230,7 +275,7 @@ const Checkout = () => {
                 <h3 className="font-bold mb-3">Order Information</h3>
                 <p className="text-sm">Order #: <span className="font-medium">CLD-{Math.floor(100000 + Math.random() * 900000)}</span></p>
                 <p className="text-sm">Date: <span className="font-medium">{new Date().toLocaleDateString()}</span></p>
-                <p className="text-sm">Total: <span className="font-medium">${mockOrderSummary.total.toFixed(2)}/month</span></p>
+                <p className="text-sm">Total: <span className="font-medium">${cartItems.length > 0 ? calculateTotal().toFixed(2) : "0.00"}/month</span></p>
               </div>
               
               <div className="space-x-4">

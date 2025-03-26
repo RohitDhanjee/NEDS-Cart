@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
@@ -10,14 +9,14 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/ui/navbar';
 import Footer from '@/components/ui/footer';
-import { getProductById, Feature, Product as ProductType } from '@/lib/data';
+import { Feature } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Product as SupabaseProduct } from '@/types/supabase';
+import { CartItem } from './Cart';
 
-// Define a feature structure for dynamic features
 interface ProductFeature {
   id: string;
   name: string;
@@ -34,7 +33,6 @@ const Product = () => {
   const [quantity, setQuantity] = useState(1);
   const [totalPrice, setTotalPrice] = useState(0);
   
-  // Sample features - in a real app, these would come from the database
   const dummyFeatures: ProductFeature[] = [
     {
       id: 'feature-1',
@@ -56,7 +54,6 @@ const Product = () => {
     }
   ];
   
-  // Fetch product from Supabase
   useEffect(() => {
     const fetchProduct = async () => {
       if (!productId) return;
@@ -85,7 +82,6 @@ const Product = () => {
     fetchProduct();
   }, [productId]);
   
-  // Update total price when selections change
   useEffect(() => {
     if (product) {
       const featuresPrice = selectedFeatures.reduce((sum, feature) => sum + feature.price, 0);
@@ -94,7 +90,6 @@ const Product = () => {
     }
   }, [product, selectedFeatures, quantity]);
   
-  // Toggle a feature selection
   const toggleFeature = (feature: ProductFeature) => {
     if (selectedFeatures.some(f => f.id === feature.id)) {
       setSelectedFeatures(selectedFeatures.filter(f => f.id !== feature.id));
@@ -103,21 +98,63 @@ const Product = () => {
     }
   };
   
-  // Handle quantity changes
   const changeQuantity = (newQuantity: number) => {
     if (newQuantity >= 1) {
       setQuantity(newQuantity);
     }
   };
   
-  // Add to cart
   const addToCart = () => {
     if (product) {
+      const cartProductFormat = {
+        id: product.id,
+        name: product.name,
+        description: product.description || '',
+        shortDescription: product.short_description || '',
+        price: product.price,
+        image: product.image || '/placeholder.svg',
+        category: product.category_id,
+        features: [],
+      };
+      
+      const cartItem: CartItem = {
+        product: cartProductFormat,
+        selectedFeatures: selectedFeatures.map(f => ({
+          id: f.id,
+          name: f.name,
+          description: f.description,
+          price: f.price
+        })),
+        quantity: quantity
+      };
+      
+      let currentCart: CartItem[] = [];
+      try {
+        const storedCart = localStorage.getItem('cart');
+        if (storedCart) {
+          currentCart = JSON.parse(storedCart);
+        }
+      } catch (error) {
+        console.error('Error reading cart from localStorage:', error);
+      }
+      
+      const existingItemIndex = currentCart.findIndex(item => 
+        item.product.id === product.id && 
+        JSON.stringify(item.selectedFeatures) === JSON.stringify(cartItem.selectedFeatures)
+      );
+      
+      if (existingItemIndex >= 0) {
+        currentCart[existingItemIndex].quantity += quantity;
+      } else {
+        currentCart.push(cartItem);
+      }
+      
+      localStorage.setItem('cart', JSON.stringify(currentCart));
+      
       toast.success('Product added to cart!', {
         description: `${product.name} has been added to your cart.`,
       });
-      // In a real app, we would store this in a cart context or state
-      // For now, let's just navigate to the cart page
+      
       setTimeout(() => {
         navigate('/cart');
       }, 1500);
@@ -170,7 +207,6 @@ const Product = () => {
           </Button>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            {/* Product Image */}
             <div className="bg-white p-8 rounded-2xl shadow-sm overflow-hidden">
               <img 
                 src={product.image || '/placeholder.svg'} 
@@ -178,7 +214,6 @@ const Product = () => {
                 className="w-full h-96 object-cover object-center rounded-xl"
               />
               
-              {/* Trust badges */}
               <div className="mt-8 grid grid-cols-3 gap-4">
                 <div className="text-center">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -201,7 +236,6 @@ const Product = () => {
               </div>
             </div>
             
-            {/* Product Details */}
             <div className="space-y-8">
               <div>
                 <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full mb-4">
@@ -219,7 +253,6 @@ const Product = () => {
                 <p className="text-sm text-muted-foreground mt-1">Base price, customize below</p>
               </div>
               
-              {/* Feature Selection */}
               <div>
                 <h3 className="text-lg font-bold mb-4">Customize Your Plan</h3>
                 <div className="space-y-4">
@@ -249,7 +282,6 @@ const Product = () => {
                 </div>
               </div>
               
-              {/* Quantity */}
               <div>
                 <h3 className="text-lg font-bold mb-4">Quantity</h3>
                 <div className="flex items-center">
@@ -272,7 +304,6 @@ const Product = () => {
                 </div>
               </div>
               
-              {/* Total and Add to Cart */}
               <div className="bg-secondary/30 p-6 rounded-xl">
                 <div className="flex justify-between mb-4">
                   <span className="font-medium">Base price:</span>

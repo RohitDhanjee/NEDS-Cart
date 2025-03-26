@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Trash2, 
@@ -13,23 +13,10 @@ import Footer from '@/components/ui/footer';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { products, Product, Feature } from '@/lib/data';
+import { Product, Feature } from '@/lib/data';
 
-// Mock cart data for demo purposes
-const mockCartItems = [
-  {
-    product: products[0],
-    selectedFeatures: [products[0].features[0], products[0].features[1]],
-    quantity: 1
-  },
-  {
-    product: products[2],
-    selectedFeatures: [products[2].features[2]],
-    quantity: 2
-  }
-];
-
-type CartItem = {
+// Define CartItem type
+export type CartItem = {
   product: Product;
   selectedFeatures: Feature[];
   quantity: number;
@@ -37,7 +24,33 @@ type CartItem = {
 
 const Cart = () => {
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState<CartItem[]>(mockCartItems);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch cart items from localStorage
+  useEffect(() => {
+    const getCartItems = () => {
+      try {
+        const storedCart = localStorage.getItem('cart');
+        if (storedCart) {
+          setCartItems(JSON.parse(storedCart));
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    getCartItems();
+  }, []);
+  
+  // Save cart items to localStorage whenever they change
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem('cart', JSON.stringify(cartItems));
+    }
+  }, [cartItems, isLoading]);
   
   // Calculate item total
   const calculateItemTotal = (item: CartItem) => {
@@ -69,6 +82,20 @@ const Cart = () => {
   const proceedToCheckout = () => {
     navigate('/checkout');
   };
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-32">
+          <div className="container-tight py-16 text-center">
+            <p>Loading your cart...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen flex flex-col">
