@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { CartItem } from '@/pages/Cart'; // Import the CartItem type
 import { supabase } from '@/integrations/supabase/client';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -100,11 +100,18 @@ const Checkout = () => {
       const total = calculateTotal();
       
       if (cartItems.length === 0) {
-        toast.error("Your cart is empty");
+        toast({
+          variant: "destructive",
+          title: "Cart Empty",
+          description: "Your cart is empty"
+        });
         return null;
       }
       
-      // Create order record
+      // Generate a random payment ID for demonstration
+      const paymentId = `PAY-${Math.floor(100000 + Math.random() * 900000)}`;
+      
+      // Create order record - removing the .single() to avoid potential error
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -112,19 +119,26 @@ const Checkout = () => {
           billing_email: formData.email,
           billing_address: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}, ${formData.country}`,
           total_amount: total,
-          payment_id: `PAY-${Math.floor(100000 + Math.random() * 900000)}`, // In a real app, this would come from payment processor
-          status: 'completed'
+          payment_id: paymentId,
+          status: 'completed',
+          // We're not setting user_id since we're allowing anonymous checkouts
         })
-        .select('id')
-        .single();
+        .select('id');
       
       if (orderError) {
+        console.error('Error details:', orderError);
         throw new Error(`Error creating order: ${orderError.message}`);
       }
       
+      if (!orderData || orderData.length === 0) {
+        throw new Error('Failed to create order, no data returned');
+      }
+      
+      const newOrderId = orderData[0].id;
+      
       // Create order items
       const orderItems = cartItems.map(item => ({
-        order_id: orderData.id,
+        order_id: newOrderId,
         product_id: item.product.id,
         quantity: item.quantity,
         price: calculateItemTotal(item)
@@ -135,13 +149,18 @@ const Checkout = () => {
         .insert(orderItems);
       
       if (itemsError) {
+        console.error('Error details:', itemsError);
         throw new Error(`Error creating order items: ${itemsError.message}`);
       }
       
-      return orderData.id;
+      return newOrderId;
     } catch (error) {
       console.error('Error saving order:', error);
-      toast.error("Failed to process your order. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Order Failed",
+        description: "Failed to process your order. Please try again."
+      });
       return null;
     } finally {
       setIsSubmitting(false);
@@ -151,7 +170,10 @@ const Checkout = () => {
   // Complete order
   const completeOrder = async (formData: CheckoutFormValues) => {
     // Show processing state with toast
-    toast.loading('Processing your order...');
+    toast({
+      title: "Processing",
+      description: "Processing your order..."
+    });
     
     const orderId = await saveOrderToSupabase(formData);
     
@@ -163,18 +185,23 @@ const Checkout = () => {
       localStorage.removeItem('cart');
       
       // Show success message
-      toast.success('Payment successful!');
+      toast({
+        title: "Success",
+        description: "Payment successful!"
+      });
       
       // Show order complete page
       setOrderComplete(true);
-    } else {
-      toast.error('There was a problem processing your order');
     }
   };
   
   const onSubmit = (formData: CheckoutFormValues) => {
     if (cartItems.length === 0) {
-      toast.error("Your cart is empty");
+      toast({
+        variant: "destructive",
+        title: "Cart Empty",
+        description: "Your cart is empty"
+      });
       return;
     }
     
