@@ -25,6 +25,17 @@ export interface ProductVariation {
   updated_at: string;
 }
 
+// Product feature type
+export interface ProductFeature {
+  id: string;
+  product_id: string;
+  name: string;
+  description: string;
+  price: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // Order type
 export interface Order {
   id: string;

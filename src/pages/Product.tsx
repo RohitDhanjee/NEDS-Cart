@@ -10,50 +10,27 @@ import {
 } from 'lucide-react';
 import Navbar from '@/components/ui/navbar';
 import Footer from '@/components/ui/footer';
-import { Feature, ProductCategory } from '@/lib/data';
+import { ProductCategory } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Product as SupabaseProduct } from '@/types/supabase';
+import { Product as SupabaseProduct, ProductVariation, ProductFeature } from '@/types/supabase';
 import { CartItem } from './Cart';
-
-interface ProductFeature {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-}
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 const Product = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<SupabaseProduct | null>(null);
+  const [variations, setVariations] = useState<ProductVariation[]>([]);
+  const [features, setFeatures] = useState<ProductFeature[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFeatures, setSelectedFeatures] = useState<ProductFeature[]>([]);
+  const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [totalPrice, setTotalPrice] = useState(0);
-  
-  const dummyFeatures: ProductFeature[] = [
-    {
-      id: 'feature-1',
-      name: 'Premium Support',
-      description: '24/7 priority support with dedicated account manager',
-      price: 29.99
-    },
-    {
-      id: 'feature-2',
-      name: 'Additional Storage',
-      description: 'Increase your storage capacity by 500GB',
-      price: 19.99
-    },
-    {
-      id: 'feature-3',
-      name: 'Advanced Analytics',
-      description: 'Detailed insights and reporting capabilities',
-      price: 24.99
-    }
-  ];
   
   useEffect(() => {
     const fetchProduct = async () => {
@@ -61,20 +38,43 @@ const Product = () => {
       
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        // Fetch product
+        const { data: productData, error: productError } = await supabase
           .from('products')
           .select('*')
           .eq('id', productId)
           .single();
         
-        if (error) throw error;
+        if (productError) throw productError;
+        setProduct(productData);
         
-        if (data) {
-          setProduct(data);
-          setTotalPrice(data.price);
+        // Fetch variations
+        const { data: variationsData, error: variationsError } = await supabase
+          .from('product_variations')
+          .select('*')
+          .eq('product_id', productId)
+          .order('price_modifier', { ascending: true });
+        
+        if (variationsError) throw variationsError;
+        setVariations(variationsData || []);
+        
+        // Set default selected variation to the first one
+        if (variationsData && variationsData.length > 0) {
+          setSelectedVariation(variationsData[0]);
         }
+        
+        // Fetch features
+        const { data: featuresData, error: featuresError } = await supabase
+          .from('product_features')
+          .select('*')
+          .eq('product_id', productId)
+          .order('price', { ascending: true });
+        
+        if (featuresError) throw featuresError;
+        setFeatures(featuresData || []);
+        
       } catch (error) {
-        console.error('Error fetching product:', error);
+        console.error('Error fetching product data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -84,12 +84,17 @@ const Product = () => {
   }, [productId]);
   
   useEffect(() => {
-    if (product) {
+    if (product && selectedVariation) {
+      // Calculate total based on:
+      // 1. Base price * variation modifier
+      // 2. Add all selected features
+      // 3. Multiply by quantity
+      const basePrice = product.price * (selectedVariation.price_modifier || 1);
       const featuresPrice = selectedFeatures.reduce((sum, feature) => sum + feature.price, 0);
-      const newTotal = (product.price + featuresPrice) * quantity;
+      const newTotal = (basePrice + featuresPrice) * quantity;
       setTotalPrice(newTotal);
     }
-  }, [product, selectedFeatures, quantity]);
+  }, [product, selectedVariation, selectedFeatures, quantity]);
   
   const toggleFeature = (feature: ProductFeature) => {
     if (selectedFeatures.some(f => f.id === feature.id)) {
@@ -106,9 +111,8 @@ const Product = () => {
   };
   
   const addToCart = () => {
-    if (product) {
-      // Fix: Cast category_id to ProductCategory type using type assertion
-      // This assumes that category_id values match the expected ProductCategory values
+    if (product && selectedVariation) {
+      // Cast category_id to ProductCategory type using type assertion
       const categoryAsProductCategory = product.category_id as ProductCategory;
       
       const cartProductFormat = {
@@ -130,6 +134,11 @@ const Product = () => {
           description: f.description,
           price: f.price
         })),
+        selectedVariation: {
+          id: selectedVariation.id,
+          duration: selectedVariation.duration,
+          price_modifier: selectedVariation.price_modifier
+        },
         quantity: quantity
       };
       
@@ -145,6 +154,7 @@ const Product = () => {
       
       const existingItemIndex = currentCart.findIndex(item => 
         item.product.id === product.id && 
+        item.selectedVariation?.id === selectedVariation.id &&
         JSON.stringify(item.selectedFeatures) === JSON.stringify(cartItem.selectedFeatures)
       );
       
@@ -156,8 +166,9 @@ const Product = () => {
       
       localStorage.setItem('cart', JSON.stringify(currentCart));
       
-      toast.success('Product added to cart!', {
-        description: `${product.name} has been added to your cart.`,
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart.`
       });
       
       setTimeout(() => {
@@ -253,39 +264,72 @@ const Product = () => {
               <div className="py-4 border-t border-b border-border">
                 <div className="flex items-baseline">
                   <span className="text-3xl font-bold">${product.price.toFixed(2)}</span>
-                  <span className="text-muted-foreground ml-2">/month</span>
+                  <span className="text-muted-foreground ml-2">base price</span>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">Base price, customize below</p>
+                <p className="text-sm text-muted-foreground mt-1">Customize your plan below</p>
               </div>
               
-              <div>
-                <h3 className="text-lg font-bold mb-4">Customize Your Plan</h3>
-                <div className="space-y-4">
-                  {dummyFeatures.map((feature) => (
-                    <div 
-                      key={feature.id} 
-                      className="flex items-start p-4 rounded-lg hover:bg-secondary/50 transition-colors"
-                    >
-                      <Checkbox 
-                        id={feature.id}
-                        checked={selectedFeatures.some(f => f.id === feature.id)}
-                        onCheckedChange={() => toggleFeature(feature)}
-                        className="mt-1"
-                      />
-                      <div className="ml-4 flex-grow">
-                        <label 
-                          htmlFor={feature.id} 
-                          className="font-medium cursor-pointer flex justify-between"
-                        >
-                          <span>{feature.name}</span>
-                          <span>${feature.price.toFixed(2)}/mo</span>
-                        </label>
-                        <p className="text-sm text-muted-foreground mt-1">{feature.description}</p>
-                      </div>
-                    </div>
-                  ))}
+              {/* Subscription Duration Selection */}
+              {variations.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold mb-4">Subscription Duration</h3>
+                  <RadioGroup 
+                    defaultValue={selectedVariation?.id}
+                    onValueChange={(value) => {
+                      const variation = variations.find(v => v.id === value);
+                      if (variation) {
+                        setSelectedVariation(variation);
+                      }
+                    }}
+                    className="space-y-3"
+                  >
+                    {variations.map((variation) => {
+                      const variationPrice = product.price * variation.price_modifier;
+                      return (
+                        <div key={variation.id} className="flex items-center space-x-2 rounded-lg border p-4 hover:bg-secondary/50">
+                          <RadioGroupItem value={variation.id} id={variation.id} />
+                          <Label htmlFor={variation.id} className="flex-grow cursor-pointer flex justify-between">
+                            <span className="font-medium">{variation.duration}</span>
+                            <span className="font-medium">${variationPrice.toFixed(2)}</span>
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </RadioGroup>
                 </div>
-              </div>
+              )}
+              
+              {/* Features Selection */}
+              {features.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold mb-4">Add Features</h3>
+                  <div className="space-y-4">
+                    {features.map((feature) => (
+                      <div 
+                        key={feature.id} 
+                        className="flex items-start p-4 rounded-lg hover:bg-secondary/50 transition-colors"
+                      >
+                        <Checkbox 
+                          id={feature.id}
+                          checked={selectedFeatures.some(f => f.id === feature.id)}
+                          onCheckedChange={() => toggleFeature(feature)}
+                          className="mt-1"
+                        />
+                        <div className="ml-4 flex-grow">
+                          <label 
+                            htmlFor={feature.id} 
+                            className="font-medium cursor-pointer flex justify-between"
+                          >
+                            <span>{feature.name}</span>
+                            <span>${feature.price.toFixed(2)}/mo</span>
+                          </label>
+                          <p className="text-sm text-muted-foreground mt-1">{feature.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div>
                 <h3 className="text-lg font-bold mb-4">Quantity</h3>
@@ -310,10 +354,12 @@ const Product = () => {
               </div>
               
               <div className="bg-secondary/30 p-6 rounded-xl">
-                <div className="flex justify-between mb-4">
-                  <span className="font-medium">Base price:</span>
-                  <span>${product.price.toFixed(2)}</span>
-                </div>
+                {selectedVariation && (
+                  <div className="flex justify-between mb-4">
+                    <span className="font-medium">{selectedVariation.duration} base:</span>
+                    <span>${(product.price * selectedVariation.price_modifier).toFixed(2)}</span>
+                  </div>
+                )}
                 
                 {selectedFeatures.length > 0 && (
                   <div className="space-y-2 mb-4">
@@ -337,11 +383,16 @@ const Product = () => {
                 <div className="border-t border-border pt-4 mb-6">
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total:</span>
-                    <span>${totalPrice.toFixed(2)}/month</span>
+                    <span>${totalPrice.toFixed(2)}/{selectedVariation?.duration.toLowerCase() || 'month'}</span>
                   </div>
                 </div>
                 
-                <Button onClick={addToCart} className="w-full py-6 font-medium rounded-xl" size="lg">
+                <Button 
+                  onClick={addToCart} 
+                  className="w-full py-6 font-medium rounded-xl" 
+                  size="lg"
+                  disabled={!selectedVariation}
+                >
                   <ShoppingCart size={18} className="mr-2" />
                   Add to Cart
                 </Button>
