@@ -3,11 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  Check, 
-  ShoppingCart, 
   Shield, 
   RefreshCw, 
-  Award
+  Award,
+  ShoppingCart
 } from 'lucide-react';
 import Navbar from '@/components/ui/navbar';
 import Footer from '@/components/ui/footer';
@@ -15,26 +14,75 @@ import { getProductById, Feature, Product as ProductType } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Product as SupabaseProduct } from '@/types/supabase';
+
+// Define a feature structure for dynamic features
+interface ProductFeature {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+}
 
 const Product = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<ProductType | null>(null);
-  const [selectedFeatures, setSelectedFeatures] = useState<Feature[]>([]);
+  const [product, setProduct] = useState<SupabaseProduct | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedFeatures, setSelectedFeatures] = useState<ProductFeature[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [totalPrice, setTotalPrice] = useState(0);
   
-  // Find the product by ID
-  useEffect(() => {
-    if (productId) {
-      const foundProduct = getProductById(productId);
-      if (foundProduct) {
-        setProduct(foundProduct);
-        
-        // Initialize price
-        setTotalPrice(foundProduct.price);
-      }
+  // Sample features - in a real app, these would come from the database
+  const dummyFeatures: ProductFeature[] = [
+    {
+      id: 'feature-1',
+      name: 'Premium Support',
+      description: '24/7 priority support with dedicated account manager',
+      price: 29.99
+    },
+    {
+      id: 'feature-2',
+      name: 'Additional Storage',
+      description: 'Increase your storage capacity by 500GB',
+      price: 19.99
+    },
+    {
+      id: 'feature-3',
+      name: 'Advanced Analytics',
+      description: 'Detailed insights and reporting capabilities',
+      price: 24.99
     }
+  ];
+  
+  // Fetch product from Supabase
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!productId) return;
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
+        
+        if (error) throw error;
+        
+        if (data) {
+          setProduct(data);
+          setTotalPrice(data.price);
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProduct();
   }, [productId]);
   
   // Update total price when selections change
@@ -47,7 +95,7 @@ const Product = () => {
   }, [product, selectedFeatures, quantity]);
   
   // Toggle a feature selection
-  const toggleFeature = (feature: Feature) => {
+  const toggleFeature = (feature: ProductFeature) => {
     if (selectedFeatures.some(f => f.id === feature.id)) {
       setSelectedFeatures(selectedFeatures.filter(f => f.id !== feature.id));
     } else {
@@ -76,6 +124,20 @@ const Product = () => {
     }
   };
   
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-32 container-tight">
+          <div className="flex justify-center items-center h-64">
+            <p className="text-lg">Loading product...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
   if (!product) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -101,9 +163,9 @@ const Product = () => {
       <main className="flex-grow pt-32">
         <div className="container-tight py-16">
           <Button variant="ghost" asChild className="mb-8">
-            <Link to={`/products/${product.category}`}>
+            <Link to={`/products/${product.category_id}`}>
               <ArrowLeft size={16} className="mr-2" />
-              Back to {product.category} apps
+              Back to {product.category_id} apps
             </Link>
           </Button>
           
@@ -111,7 +173,7 @@ const Product = () => {
             {/* Product Image */}
             <div className="bg-white p-8 rounded-2xl shadow-sm overflow-hidden">
               <img 
-                src={product.image} 
+                src={product.image || '/placeholder.svg'} 
                 alt={product.name} 
                 className="w-full h-96 object-cover object-center rounded-xl"
               />
@@ -143,10 +205,10 @@ const Product = () => {
             <div className="space-y-8">
               <div>
                 <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full mb-4">
-                  {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
+                  {product.category_id.charAt(0).toUpperCase() + product.category_id.slice(1)}
                 </span>
                 <h1 className="text-3xl sm:text-4xl font-bold mb-4">{product.name}</h1>
-                <p className="text-muted-foreground">{product.description}</p>
+                <p className="text-muted-foreground">{product.description || product.short_description}</p>
               </div>
               
               <div className="py-4 border-t border-b border-border">
@@ -161,7 +223,7 @@ const Product = () => {
               <div>
                 <h3 className="text-lg font-bold mb-4">Customize Your Plan</h3>
                 <div className="space-y-4">
-                  {product.features.map((feature) => (
+                  {dummyFeatures.map((feature) => (
                     <div 
                       key={feature.id} 
                       className="flex items-start p-4 rounded-lg hover:bg-secondary/50 transition-colors"
