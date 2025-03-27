@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { getFeaturedProducts, Product } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types/supabase';
 
 const ProductCard = ({ product, index }: { product: Product, index: number }) => {
   return (
@@ -19,12 +20,12 @@ const ProductCard = ({ product, index }: { product: Product, index: number }) =>
     )}>
       <div className="h-48 bg-secondary relative overflow-hidden">
         <img 
-          src={product.image} 
+          src={product.image || '/placeholder.svg'} 
           alt={product.name} 
           className="w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
         />
         <div className="absolute top-4 left-4 bg-primary/90 text-white text-xs uppercase font-bold py-1 px-3 rounded-full">
-          {product.category}
+          {product.category_id}
         </div>
       </div>
       
@@ -33,11 +34,11 @@ const ProductCard = ({ product, index }: { product: Product, index: number }) =>
           {product.name}
         </h3>
         <p className="text-muted-foreground line-clamp-2 mb-4">
-          {product.shortDescription}
+          {product.short_description}
         </p>
         <div className="flex items-center justify-between">
           <span className="font-bold text-lg">
-            ${product.price.toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/mo</span>
+            ${parseFloat(product.price.toString()).toFixed(2)}<span className="text-sm font-normal text-muted-foreground">/mo</span>
           </span>
           <Button
             variant="ghost"
@@ -56,7 +57,29 @@ const ProductCard = ({ product, index }: { product: Product, index: number }) =>
 };
 
 const Featured = () => {
-  const featuredProducts = getFeaturedProducts();
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('is_featured', true)
+          .limit(4);
+          
+        if (error) throw error;
+        setFeaturedProducts(data || []);
+      } catch (error) {
+        console.error('Error fetching featured products:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchFeaturedProducts();
+  }, []);
   
   return (
     <section className="py-20">
@@ -66,11 +89,21 @@ const Featured = () => {
           <p className="section-subtitle">Discover our most popular cloud applications trusted by thousands of professionals</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          {featuredProducts.map((product, index) => (
-            <ProductCard key={product.id} product={product} index={index} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          </div>
+        ) : featuredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            {featuredProducts.map((product, index) => (
+              <ProductCard key={product.id} product={product} index={index} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No featured products found</p>
+          </div>
+        )}
         
         <div className="mt-16 text-center">
           <Button asChild variant="outline" size="lg" className="rounded-full">

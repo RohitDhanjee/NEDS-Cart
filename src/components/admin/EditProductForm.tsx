@@ -12,8 +12,9 @@ import {
   DialogFooter 
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Star } from 'lucide-react';
 import { Product } from '@/types/supabase';
+import { Switch } from '@/components/ui/switch';
 
 interface EditProductFormProps {
   productId: string;
@@ -29,6 +30,7 @@ export const EditProductForm = ({ productId, onSuccess, onCancel }: EditProductF
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [image, setImage] = useState('');
+  const [isFeatured, setIsFeatured] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isProductLoading, setIsProductLoading] = useState(true);
 
@@ -51,6 +53,7 @@ export const EditProductForm = ({ productId, onSuccess, onCancel }: EditProductF
         setPrice(data.price?.toString() || '');
         setCategory(data.category_id || '');
         setImage(data.image || '');
+        setIsFeatured(data.is_featured || false);
       } catch (error) {
         console.error('Error fetching product:', error);
         toast.error('Failed to load product data');
@@ -83,6 +86,7 @@ export const EditProductForm = ({ productId, onSuccess, onCancel }: EditProductF
         price: numericPrice,
         category_id: category,
         image,
+        is_featured: isFeatured,
         updated_at: new Date().toISOString() // Convert Date to string
       };
 
@@ -194,6 +198,18 @@ export const EditProductForm = ({ productId, onSuccess, onCancel }: EditProductF
             value={image} 
             onChange={(e) => setImage(e.target.value)} 
           />
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch 
+            id="featured" 
+            checked={isFeatured} 
+            onCheckedChange={setIsFeatured} 
+          />
+          <Label htmlFor="featured" className="flex items-center gap-2 cursor-pointer">
+            <Star className={`h-4 w-4 ${isFeatured ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+            Featured Product
+          </Label>
         </div>
 
         <DialogFooter className="pt-4">

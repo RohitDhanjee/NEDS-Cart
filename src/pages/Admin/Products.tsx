@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Package, Plus, Pencil, Trash2, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -250,6 +250,7 @@ const AdminProducts = () => {
                         <TableHead>Name</TableHead>
                         <TableHead>Category</TableHead>
                         <TableHead>Price</TableHead>
+                        <TableHead>Featured</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -259,6 +260,13 @@ const AdminProducts = () => {
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell>{product.category_id}</TableCell>
                           <TableCell>${product.price.toFixed(2)}</TableCell>
+                          <TableCell>
+                            {product.is_featured ? (
+                              <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                            ) : (
+                              <Star className="h-5 w-5 text-gray-200" />
+                            )}
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Button 
