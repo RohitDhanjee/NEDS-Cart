@@ -71,7 +71,7 @@ const Product = () => {
           .order('price', { ascending: true });
         
         if (featuresError) throw featuresError;
-        setFeatures(featuresData || []);
+        setFeatures(featuresData as ProductFeature[] || []);
         
       } catch (error) {
         console.error('Error fetching product data:', error);
