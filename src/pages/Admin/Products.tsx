@@ -147,6 +147,27 @@ const AdminProducts = () => {
     }
   };
 
+  const handleToggleFeatured = async (product: Product) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_featured: !product.is_featured })
+        .eq('id', product.id);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setProducts(products.map(p => 
+        p.id === product.id ? { ...p, is_featured: !p.is_featured } : p
+      ));
+      
+      toast.success(`Product ${product.is_featured ? 'removed from' : 'added to'} featured items`);
+    } catch (error) {
+      console.error('Error updating featured status:', error);
+      toast.error('Failed to update featured status');
+    }
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -261,11 +282,18 @@ const AdminProducts = () => {
                           <TableCell>{product.category_id}</TableCell>
                           <TableCell>${product.price.toFixed(2)}</TableCell>
                           <TableCell>
-                            {product.is_featured ? (
-                              <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                            ) : (
-                              <Star className="h-5 w-5 text-gray-200" />
-                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleToggleFeatured(product)}
+                              className="p-0 h-auto"
+                            >
+                              {product.is_featured ? (
+                                <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                              ) : (
+                                <Star className="h-5 w-5 text-gray-200" />
+                              )}
+                            </Button>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">

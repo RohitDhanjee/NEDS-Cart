@@ -180,6 +180,7 @@ export type Database = {
           description: string | null
           id: string
           image: string | null
+          is_featured: boolean | null
           name: string
           price: number
           short_description: string | null
@@ -191,6 +192,7 @@ export type Database = {
           description?: string | null
           id?: string
           image?: string | null
+          is_featured?: boolean | null
           name: string
           price: number
           short_description?: string | null
@@ -202,6 +204,7 @@ export type Database = {
           description?: string | null
           id?: string
           image?: string | null
+          is_featured?: boolean | null
           name?: string
           price?: number
           short_description?: string | null

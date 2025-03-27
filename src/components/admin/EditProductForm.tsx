@@ -78,7 +78,7 @@ export const EditProductForm = ({ productId, onSuccess, onCancel }: EditProductF
         return;
       }
 
-      // Fix: Convert the Date object to an ISO string for the updated_at field
+      // Convert the Date object to an ISO string for the updated_at field
       const updates = {
         name,
         description,

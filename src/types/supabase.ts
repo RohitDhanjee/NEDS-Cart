@@ -1,4 +1,3 @@
-
 // Custom types for Supabase tables
 // These complement the auto-generated types
 
@@ -13,6 +12,7 @@ export interface Product {
   image: string | null;
   created_at: string;
   updated_at: string;
+  is_featured: boolean | null;
 }
 
 // Product variation type
