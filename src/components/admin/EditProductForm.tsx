@@ -75,6 +75,7 @@ export const EditProductForm = ({ productId, onSuccess, onCancel }: EditProductF
         return;
       }
 
+      // Fix: Convert the Date object to an ISO string for the updated_at field
       const updates = {
         name,
         description,
@@ -82,7 +83,7 @@ export const EditProductForm = ({ productId, onSuccess, onCancel }: EditProductF
         price: numericPrice,
         category_id: category,
         image,
-        updated_at: new Date()
+        updated_at: new Date().toISOString() // Convert Date to string
       };
 
       const { data, error } = await supabase
