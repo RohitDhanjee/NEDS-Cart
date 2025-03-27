@@ -29,14 +29,45 @@ import {
   LogOut 
 } from 'lucide-react';
 
+// Interface for our settings types
+interface GeneralSettings {
+  storeName: string;
+  storeEmail: string;
+  storeDescription: string;
+  enableCustomerAccounts: boolean;
+  enableReviews: boolean;
+}
+
+interface PaymentSettings {
+  stripeEnabled: boolean;
+  stripeApiKey: string;
+  paypalEnabled: boolean;
+  paypalClientId: string;
+  currencyCode: string;
+  taxRate: string;
+}
+
+interface EmailSettings {
+  sendOrderConfirmation: boolean;
+  sendShippingUpdates: boolean;
+  sendPromotionalEmails: boolean;
+  emailFooterText: string;
+}
+
+interface SecuritySettings {
+  enableTwoFactorAuth: boolean;
+  requireStrongPasswords: boolean;
+  autoLogoutAfterMinutes: string;
+}
+
 const AdminSettings = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  // Sample settings state
-  const [generalSettings, setGeneralSettings] = useState({
+  // Settings state
+  const [generalSettings, setGeneralSettings] = useState<GeneralSettings>({
     storeName: 'Cloud App Store',
     storeEmail: 'contact@cloudappstore.com',
     storeDescription: 'We sell the best cloud solutions for your business needs.',
@@ -44,7 +75,7 @@ const AdminSettings = () => {
     enableReviews: true,
   });
   
-  const [paymentSettings, setPaymentSettings] = useState({
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
     stripeEnabled: false,
     stripeApiKey: '',
     paypalEnabled: false,
@@ -53,14 +84,14 @@ const AdminSettings = () => {
     taxRate: '8.5',
   });
   
-  const [emailSettings, setEmailSettings] = useState({
+  const [emailSettings, setEmailSettings] = useState<EmailSettings>({
     sendOrderConfirmation: true,
     sendShippingUpdates: true,
     sendPromotionalEmails: false,
     emailFooterText: 'Thanks for shopping with us!',
   });
   
-  const [securitySettings, setSecuritySettings] = useState({
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     enableTwoFactorAuth: false,
     requireStrongPasswords: true,
     autoLogoutAfterMinutes: '30',
@@ -90,7 +121,34 @@ const AdminSettings = () => {
       }
 
       setIsAdmin(true);
+      
+      // Load settings from local storage if available
+      loadSettings();
+      
       setIsLoading(false);
+    };
+
+    // Function to load settings from local storage
+    const loadSettings = () => {
+      const savedGeneralSettings = localStorage.getItem('adminGeneralSettings');
+      if (savedGeneralSettings) {
+        setGeneralSettings(JSON.parse(savedGeneralSettings));
+      }
+      
+      const savedPaymentSettings = localStorage.getItem('adminPaymentSettings');
+      if (savedPaymentSettings) {
+        setPaymentSettings(JSON.parse(savedPaymentSettings));
+      }
+      
+      const savedEmailSettings = localStorage.getItem('adminEmailSettings');
+      if (savedEmailSettings) {
+        setEmailSettings(JSON.parse(savedEmailSettings));
+      }
+      
+      const savedSecuritySettings = localStorage.getItem('adminSecuritySettings');
+      if (savedSecuritySettings) {
+        setSecuritySettings(JSON.parse(savedSecuritySettings));
+      }
     };
 
     checkAdminStatus();
@@ -102,11 +160,27 @@ const AdminSettings = () => {
   };
 
   const handleSaveSettings = (settingType: string) => {
-    setIsSaving(true);
+    setIsSaving(settingType);
     
-    // Simulate API call to save settings
+    // Save settings to local storage based on type
+    switch (settingType) {
+      case 'General':
+        localStorage.setItem('adminGeneralSettings', JSON.stringify(generalSettings));
+        break;
+      case 'Payment':
+        localStorage.setItem('adminPaymentSettings', JSON.stringify(paymentSettings));
+        break;
+      case 'Email':
+        localStorage.setItem('adminEmailSettings', JSON.stringify(emailSettings));
+        break;
+      case 'Security':
+        localStorage.setItem('adminSecuritySettings', JSON.stringify(securitySettings));
+        break;
+    }
+    
+    // Simulate API call delay
     setTimeout(() => {
-      setIsSaving(false);
+      setIsSaving(null);
       toast.success(`${settingType} settings saved successfully`);
     }, 800);
   };
@@ -262,8 +336,8 @@ const AdminSettings = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => handleSaveSettings('General')} disabled={isSaving}>
-                    {isSaving ? (
+                  <Button onClick={() => handleSaveSettings('General')} disabled={isSaving === 'General'}>
+                    {isSaving === 'General' ? (
                       <>
                         <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                         Saving...
@@ -356,8 +430,8 @@ const AdminSettings = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => handleSaveSettings('Payment')} disabled={isSaving}>
-                    {isSaving ? (
+                  <Button onClick={() => handleSaveSettings('Payment')} disabled={isSaving === 'Payment'}>
+                    {isSaving === 'Payment' ? (
                       <>
                         <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                         Saving...
@@ -426,8 +500,8 @@ const AdminSettings = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => handleSaveSettings('Email')} disabled={isSaving}>
-                    {isSaving ? (
+                  <Button onClick={() => handleSaveSettings('Email')} disabled={isSaving === 'Email'}>
+                    {isSaving === 'Email' ? (
                       <>
                         <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                         Saving...
@@ -486,15 +560,15 @@ const AdminSettings = () => {
                   </div>
                   
                   <div className="mt-4 pt-4 border-t">
-                    <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                    <Button variant="outline" className="w-full flex items-center justify-center gap-2" onClick={() => toast.info('Password reset functionality will be implemented in the future')}>
                       <Lock className="h-4 w-4" />
                       Reset Admin Passwords
                     </Button>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => handleSaveSettings('Security')} disabled={isSaving}>
-                    {isSaving ? (
+                  <Button onClick={() => handleSaveSettings('Security')} disabled={isSaving === 'Security'}>
+                    {isSaving === 'Security' ? (
                       <>
                         <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                         Saving...

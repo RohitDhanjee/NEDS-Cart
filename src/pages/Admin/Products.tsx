@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { Dialog } from '@/components/ui/dialog';
 import { AddProductForm } from '@/components/admin/AddProductForm';
+import { EditProductForm } from '@/components/admin/EditProductForm';
 import { Product } from '@/types/supabase';
 
 const AdminProducts = () => {
@@ -43,6 +44,8 @@ const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [addProductOpen, setAddProductOpen] = useState(false);
+  const [editProductOpen, setEditProductOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -102,6 +105,14 @@ const AdminProducts = () => {
     setAddProductOpen(false);
     toast.success('Product added successfully');
   };
+  
+  const handleEditProductSuccess = (updatedProduct: Product) => {
+    setProducts(products.map(product => 
+      product.id === updatedProduct.id ? updatedProduct : product
+    ));
+    setEditProductOpen(false);
+    toast.success('Product updated successfully');
+  };
 
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -113,8 +124,8 @@ const AdminProducts = () => {
   };
 
   const handleEditProduct = (id: string) => {
-    toast.info(`Edit product ${id} functionality will be implemented`);
-    // Future: navigate(`/admin/products/edit/${id}`);
+    setSelectedProductId(id);
+    setEditProductOpen(true);
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -293,6 +304,16 @@ const AdminProducts = () => {
 
           <Dialog open={addProductOpen} onOpenChange={setAddProductOpen}>
             <AddProductForm onSuccess={handleAddProductSuccess} onCancel={() => setAddProductOpen(false)} />
+          </Dialog>
+          
+          <Dialog open={editProductOpen} onOpenChange={setEditProductOpen}>
+            {selectedProductId && (
+              <EditProductForm 
+                productId={selectedProductId}
+                onSuccess={handleEditProductSuccess} 
+                onCancel={() => setEditProductOpen(false)} 
+              />
+            )}
           </Dialog>
         </div>
       </div>

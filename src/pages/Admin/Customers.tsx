@@ -33,12 +33,20 @@ import {
   Settings, 
   LogOut 
 } from 'lucide-react';
+import { Dialog } from '@/components/ui/dialog';
+import { CustomerDetails } from '@/components/admin/CustomerDetails';
+import { CustomerOrders } from '@/components/admin/CustomerOrders';
+import { SendEmailForm } from '@/components/admin/SendEmailForm';
 
 const AdminCustomers = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [customers, setCustomers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [customerDetailsOpen, setCustomerDetailsOpen] = useState(false);
+  const [customerOrdersOpen, setCustomerOrdersOpen] = useState(false);
+  const [sendEmailOpen, setSendEmailOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -110,18 +118,63 @@ const AdminCustomers = () => {
     navigate('/');
   };
 
-  const handleViewCustomer = (id: string) => {
-    toast.info(`View customer ${id} functionality will be implemented`);
-    // Future: navigate(`/admin/customers/${id}`);
+  const handleViewCustomer = (customer: any) => {
+    setSelectedCustomer(customer);
+    setCustomerDetailsOpen(true);
   };
 
-  const handleViewOrders = (id: string) => {
-    toast.info(`View orders for customer ${id} functionality will be implemented`);
-    // Future: navigate(`/admin/orders?customer=${id}`);
+  const handleViewOrders = (customer: any) => {
+    setSelectedCustomer(customer);
+    setCustomerOrdersOpen(true);
   };
 
-  const handleSendEmail = (email: string) => {
-    toast.info(`Send email to ${email} functionality will be implemented`);
+  const handleSendEmail = (customer: any) => {
+    setSelectedCustomer(customer);
+    setSendEmailOpen(true);
+  };
+
+  const handleViewOrderFromDetails = (customerId: string) => {
+    // First close the details dialog
+    setCustomerDetailsOpen(false);
+    
+    // Set the selected customer by ID if not already set
+    if (!selectedCustomer || selectedCustomer.id !== customerId) {
+      const customer = customers.find(c => c.id === customerId);
+      if (customer) {
+        setSelectedCustomer(customer);
+      }
+    }
+    
+    // Open the orders dialog
+    setTimeout(() => {
+      setCustomerOrdersOpen(true);
+    }, 100);
+  };
+  
+  const handleSendEmailFromDetails = (email: string) => {
+    // First close the details dialog
+    setCustomerDetailsOpen(false);
+    
+    // Set the selected customer by email if not already set
+    if (!selectedCustomer || selectedCustomer.email !== email) {
+      const customer = customers.find(c => c.email === email);
+      if (customer) {
+        setSelectedCustomer(customer);
+      } else if (selectedCustomer) {
+        // If customer not found in our list but we have a selected customer,
+        // update just the email
+        setSelectedCustomer({...selectedCustomer, email});
+      }
+    }
+    
+    // Open the send email dialog
+    setTimeout(() => {
+      setSendEmailOpen(true);
+    }, 100);
+  };
+
+  const handleViewOrder = (orderId: string) => {
+    toast.info(`View order ${orderId} functionality will be implemented`);
   };
 
   // Filter customers based on search term
@@ -283,7 +336,7 @@ const AdminCustomers = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => handleViewCustomer(customer.id)}
+                                onClick={() => handleViewCustomer(customer)}
                                 className="h-8 w-8 p-0"
                               >
                                 <Eye size={14} />
@@ -292,7 +345,7 @@ const AdminCustomers = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => handleViewOrders(customer.id)}
+                                onClick={() => handleViewOrders(customer)}
                                 className="h-8 w-8 p-0"
                               >
                                 <History size={14} />
@@ -301,7 +354,7 @@ const AdminCustomers = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => handleSendEmail(customer.email)}
+                                onClick={() => handleSendEmail(customer)}
                                 className="h-8 w-8 p-0"
                               >
                                 <Mail size={14} />
@@ -325,6 +378,41 @@ const AdminCustomers = () => {
               )}
             </CardContent>
           </Card>
+          
+          {/* Customer Details Dialog */}
+          <Dialog open={customerDetailsOpen} onOpenChange={setCustomerDetailsOpen}>
+            {selectedCustomer && (
+              <CustomerDetails 
+                customerId={selectedCustomer.id} 
+                onClose={() => setCustomerDetailsOpen(false)}
+                onViewOrders={handleViewOrderFromDetails}
+                onSendEmail={handleSendEmailFromDetails}
+              />
+            )}
+          </Dialog>
+          
+          {/* Customer Orders Dialog */}
+          <Dialog open={customerOrdersOpen} onOpenChange={setCustomerOrdersOpen}>
+            {selectedCustomer && (
+              <CustomerOrders 
+                customerId={selectedCustomer.id}
+                customerName={selectedCustomer.full_name}
+                onClose={() => setCustomerOrdersOpen(false)}
+                onViewOrder={handleViewOrder}
+              />
+            )}
+          </Dialog>
+          
+          {/* Send Email Dialog */}
+          <Dialog open={sendEmailOpen} onOpenChange={setSendEmailOpen}>
+            {selectedCustomer && (
+              <SendEmailForm 
+                customerEmail={selectedCustomer.email}
+                customerName={selectedCustomer.full_name}
+                onClose={() => setSendEmailOpen(false)}
+              />
+            )}
+          </Dialog>
         </div>
       </div>
     </SidebarProvider>
