@@ -19,13 +19,37 @@ import AdminProducts from "./pages/Admin/Products";
 import AdminOrders from "./pages/Admin/Orders";
 import AdminCustomers from "./pages/Admin/Customers";
 import AdminSettings from "./pages/Admin/Settings";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
+// Renders errors or successfull transactions on the screen.
+function Message({ content }) {
+  return <p>{content}</p>;
+}
 const App = () => {
   // Create a new QueryClient instance inside the component
   const [queryClient] = useState(() => new QueryClient());
+  const initialOptions = {
+    "clientId": "AbsxsXpbKWNRZLzuhjyuiHBto_Wsf6XuNbvavP87f9lumL54kJ4KUlAWwBC0WwBhE6SmnqImKa_iW6f2",
+    "enable-funding": "venmo",
+    "disable-funding": "",
+    "buyer-country": "US",
+    "currency": "USD",
+    "data-page-type": "product-details",
+    "components": "buttons",
+    "data-sdk-integration-source": "developer-studio",
+  };
+
+  const [message, setMessage] = useState("");
+
 
   return (
     <QueryClientProvider client={queryClient}>
+       <PayPalScriptProvider
+        options={
+         initialOptions
+        }
+      >
+
       <TooltipProvider>
         <Toaster />
         <Sonner richColors closeButton />
@@ -51,6 +75,7 @@ const App = () => {
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </PayPalScriptProvider>
     </QueryClientProvider>
   );
 };

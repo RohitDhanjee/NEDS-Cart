@@ -8,11 +8,12 @@ import {
   ShieldCheck,
   RefreshCw
 } from 'lucide-react';
-import Navbar from '@/components/ui/navbar';
-import Footer from '@/components/ui/footer';
-import { Button } from '@/components/ui/button';
-import { Product, Feature, ProductCategory } from '@/lib/data';
-import { toast } from '@/hooks/use-toast';
+import Navbar from '../components/ui/navbar.tsx';
+import Footer from '../components/ui/footer.tsx';
+import { Button } from '../components/ui/button.tsx';
+import { Product, Feature, ProductCategory } from '../lib/data.ts';
+import { toast } from '../hooks/use-toast.ts';
+// import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 
 // Update the CartItem interface to include the variation
 export interface CartItem {

@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
   const location = useLocation();
 
   // Handle scroll effect
@@ -34,10 +35,46 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Update cart count from localStorage
+  useEffect(() => {
+    const updateCartCount = () => {
+      try {
+        const storedCart = localStorage.getItem('cart');
+        if (storedCart) {
+          const cart = JSON.parse(storedCart);
+          const count = cart.reduce((total, item) => total + item.quantity, 0);
+          setCartItemCount(count);
+        } else {
+          setCartItemCount(0);
+        }
+      } catch (error) {
+        console.error('Error getting cart count:', error);
+        setCartItemCount(0);
+      }
+    };
+
+    // Update cart count immediately
+    updateCartCount();
+
+    // Listen for storage events to update cart when changed in another tab
+    window.addEventListener('storage', updateCartCount);
+
+    // Create a custom event listener for cart updates within the same tab
+    window.addEventListener('cartUpdated', updateCartCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
+  }, []);
+
+
   // Close mobile menu when location changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
+
+
 
   return (
     <header className={cn(
@@ -130,7 +167,7 @@ const Navbar = () => {
           >
             <ShoppingCart size={20} />
             <span className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center">
-              0
+              {cartItemCount}
             </span>
           </Link>
           
