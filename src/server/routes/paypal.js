@@ -15,7 +15,7 @@
 
 const express = require('express');
 const router = express.Router();
-const paypalController = require('../controllers/paypal');
+const paypalController = require('../controllers/paypal.js');
 
 // Get PayPal client ID for the frontend
 router.get('/client-id', paypalController.getClientId);

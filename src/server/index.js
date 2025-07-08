@@ -181,7 +181,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
-const paypalRoutes = require('./routes/paypal');
+const paypalRoutes = require('./routes/paypal.js');
 
 // Load environment variables
 dotenv.config();
