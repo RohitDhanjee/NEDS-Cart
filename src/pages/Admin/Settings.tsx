@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useSettings } from '@/contexts/SettingsContext';
+import { useSettings } from '@/contexts/Settingscontext';
 import {
   SidebarProvider,
   Sidebar,
