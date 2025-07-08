@@ -9,7 +9,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { categories } from '@/lib/data';
-import { useSettings } from '@/contexts/SettingsContext';
+import { useSettings } from '@/contexts/Settingscontext';
 import { 
   DropdownMenu,
   DropdownMenuContent,
