@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useSettings } from '@/contexts/SettingsContext';
+import { useSettings } from '@/contexts/Settingscontext';
 
 const Footer = () => {
   const { generalSettings } = useSettings();
