@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSettings } from '@/contexts/SettingsContext';
 import {
   SidebarProvider,
   Sidebar,
@@ -28,45 +29,21 @@ import {
   Settings, 
   LogOut 
 } from 'lucide-react';
-
-// Interface for our settings types
-interface GeneralSettings {
-  storeName: string;
-  storeEmail: string;
-  storeDescription: string;
-  enableCustomerAccounts: boolean;
-  enableReviews: boolean;
-}
-
-interface PaymentSettings {
-  stripeEnabled: boolean;
-  stripeApiKey: string;
-  paypalEnabled: boolean;
-  paypalClientId: string;
-  currencyCode: string;
-  taxRate: string;
-}
-
-interface EmailSettings {
-  sendOrderConfirmation: boolean;
-  sendShippingUpdates: boolean;
-  sendPromotionalEmails: boolean;
-  emailFooterText: string;
-}
-
-interface SecuritySettings {
-  enableTwoFactorAuth: boolean;
-  requireStrongPasswords: boolean;
-  autoLogoutAfterMinutes: string;
-}
+import { 
+  GeneralSettings,
+  PaymentSettings,
+  EmailSettings,
+  SecuritySettings
+} from '@/types/appSettings';
 
 const AdminSettings = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState<string | null>(null);
+  const { refreshSettings } = useSettings();
   const navigate = useNavigate();
   
-  // Settings state
+  // State for settings forms
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings>({
     storeName: 'Cloud App Store',
     storeEmail: 'contact@cloudappstore.com',
@@ -106,7 +83,6 @@ const AdminSettings = () => {
         return;
       }
 
-      // Check if user has admin role
       const { data, error } = await supabase
         .from('user_roles')
         .select('*')
@@ -122,32 +98,56 @@ const AdminSettings = () => {
 
       setIsAdmin(true);
       
-      // Load settings from local storage if available
-      loadSettings();
+      await loadSettings();
       
       setIsLoading(false);
     };
 
-    // Function to load settings from local storage
-    const loadSettings = () => {
-      const savedGeneralSettings = localStorage.getItem('adminGeneralSettings');
-      if (savedGeneralSettings) {
-        setGeneralSettings(JSON.parse(savedGeneralSettings));
-      }
-      
-      const savedPaymentSettings = localStorage.getItem('adminPaymentSettings');
-      if (savedPaymentSettings) {
-        setPaymentSettings(JSON.parse(savedPaymentSettings));
-      }
-      
-      const savedEmailSettings = localStorage.getItem('adminEmailSettings');
-      if (savedEmailSettings) {
-        setEmailSettings(JSON.parse(savedEmailSettings));
-      }
-      
-      const savedSecuritySettings = localStorage.getItem('adminSecuritySettings');
-      if (savedSecuritySettings) {
-        setSecuritySettings(JSON.parse(savedSecuritySettings));
+    const loadSettings = async () => {
+      try {
+        // Using any type explicitly to bypass the TypeScript error for now
+        // Fetch general settings
+        const { data: generalData, error: generalError } = await supabase.rpc(
+          'get_settings' as any, 
+          { setting_type: 'general' }
+        );
+          
+        if (generalData && !generalError) {
+          setGeneralSettings(generalData as any);
+        }
+        
+        // Fetch payment settings
+        const { data: paymentData, error: paymentError } = await supabase.rpc(
+          'get_settings' as any, 
+          { setting_type: 'payment' }
+        );
+          
+        if (paymentData && !paymentError) {
+          setPaymentSettings(paymentData as any);
+        }
+        
+        // Fetch email settings
+        const { data: emailData, error: emailError } = await supabase.rpc(
+          'get_settings' as any, 
+          { setting_type: 'email' }
+        );
+          
+        if (emailData && !emailError) {
+          setEmailSettings(emailData as any);
+        }
+        
+        // Fetch security settings
+        const { data: securityData, error: securityError } = await supabase.rpc(
+          'get_settings' as any, 
+          { setting_type: 'security' }
+        );
+          
+        if (securityData && !securityError) {
+          setSecuritySettings(securityData as any);
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        toast.error('Failed to load settings');
       }
     };
 
@@ -159,30 +159,58 @@ const AdminSettings = () => {
     navigate('/');
   };
 
-  const handleSaveSettings = (settingType: string) => {
+  const handleSaveSettings = async (settingType: string) => {
     setIsSaving(settingType);
     
-    // Save settings to local storage based on type
-    switch (settingType) {
-      case 'General':
-        localStorage.setItem('adminGeneralSettings', JSON.stringify(generalSettings));
-        break;
-      case 'Payment':
-        localStorage.setItem('adminPaymentSettings', JSON.stringify(paymentSettings));
-        break;
-      case 'Email':
-        localStorage.setItem('adminEmailSettings', JSON.stringify(emailSettings));
-        break;
-      case 'Security':
-        localStorage.setItem('adminSecuritySettings', JSON.stringify(securitySettings));
-        break;
-    }
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsSaving(null);
+    try {
+      let settingsData;
+      let typeKey = '';
+      
+      switch (settingType) {
+        case 'General':
+          settingsData = generalSettings;
+          typeKey = 'general';
+          break;
+        case 'Payment':
+          settingsData = paymentSettings;
+          typeKey = 'payment';
+          break;
+        case 'Email':
+          settingsData = emailSettings;
+          typeKey = 'email';
+          break;
+        case 'Security':
+          settingsData = securitySettings;
+          typeKey = 'security';
+          break;
+        default:
+          throw new Error('Invalid settings type');
+      }
+      
+      // Use RPC to save settings with type assertion to bypass TypeScript error
+      const { data, error } = await supabase.rpc(
+        'save_settings' as any, 
+        { 
+          setting_type: typeKey, 
+          setting_data: settingsData 
+        }
+      );
+      
+      if (error) {
+        console.error('Error saving settings:', error);
+        throw error;
+      }
+      
+      // Refresh the global settings context to update all components
+      await refreshSettings();
+      
       toast.success(`${settingType} settings saved successfully`);
-    }, 800);
+    } catch (error) {
+      console.error(`Error saving ${settingType} settings:`, error);
+      toast.error(`Failed to save ${settingType} settings`);
+    } finally {
+      setIsSaving(null);
+    }
   };
 
   if (isLoading) {
