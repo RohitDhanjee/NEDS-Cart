@@ -9,6 +9,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { categories } from '@/lib/data';
+import { useSettings } from '@/contexts/SettingsContext';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
   const location = useLocation();
+  const { generalSettings, loading } = useSettings();
 
   // Handle scroll effect
   useEffect(() => {
@@ -68,13 +70,13 @@ const Navbar = () => {
     };
   }, []);
 
-
   // Close mobile menu when location changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
 
-
+  // Get the store name from settings, with a fallback
+  const storeName = generalSettings?.storeName || 'CloudApp';
 
   return (
     <header className={cn(
@@ -87,7 +89,7 @@ const Navbar = () => {
           to="/" 
           className="text-xl font-bold tracking-tight relative z-10"
         >
-          CloudApp
+          {storeName}
         </Link>
 
         {/* Desktop Navigation */}
