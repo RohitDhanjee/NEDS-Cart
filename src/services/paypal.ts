@@ -183,7 +183,9 @@
 // PayPal Service for frontend integration
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+// const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://skilled-kyrstin-rohitdhanjee-56c77082.koyeb.app/api';
+
 
 // PayPal client configuration
 export const paypalConfig = {
