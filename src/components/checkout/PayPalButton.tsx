@@ -334,7 +334,8 @@ const PayPalButton: React.FC<PayPalCheckoutButtonProps> = ({
   const checkServerStatus = async () => {
     try {
       console.log('Checking server status...');
-      const response = await axios.get('http://localhost:5000/api/health');
+      // const response = await axios.get('http://localhost:5000/api/health');
+      const response = await axios.get('https://skilled-kyrstin-rohitdhanjee-56c77082.koyeb.app/api/health');
       console.log('Server status:', response.data);
       return true;
     } catch (error) {
